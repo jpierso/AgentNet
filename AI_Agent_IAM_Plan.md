@@ -1,7 +1,14 @@
-![Project Logo](AgentNet.png)
+# Identity and Access Management
 
-# AgentNet
-Enterprise IAM platform for AI agents. Manages agent identities, scoped delegation, access controls, audit trails, and lifecycle — ensuring agents act on behalf of users with least privilege and full accountability.
+## for Enterprise AI Agents
+
+*Strategic Plan for Access Controls, Attestation, and Audit*
+
+**February 11, 2026**
+
+---
+
+## Executive Summary
 
 AI agents acting on behalf of users fundamentally shift the Identity and Access Management (IAM) model from "human authenticates and acts" to "human delegates and agent acts autonomously." This document presents a comprehensive plan to maintain robust access controls for AI agents, including mechanisms for reviewing and attesting to agent access, and investigating agent actions performed on behalf of users.
 
