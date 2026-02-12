@@ -31,6 +31,20 @@ export const AuditActions = {
   APPROVAL_CREATED: 'approval.created',
   APPROVAL_REVIEWED: 'approval.reviewed',
 
+  // Consent operations
+  CONSENT_GRANTED: 'consent.granted',
+  CONSENT_REVOKED: 'consent.revoked',
+
+  // Attestation operations
+  CAMPAIGN_CREATED: 'campaign.created',
+  CAMPAIGN_CANCELLED: 'campaign.cancelled',
+  CAMPAIGN_COMPLETED: 'campaign.completed',
+  ATTESTATION_REVIEWED: 'attestation.reviewed',
+  ATTESTATION_AUTO_SUSPENDED: 'attestation.auto_suspended',
+
+  // Drift detection
+  DRIFT_DETECTED: 'drift.detected',
+
   // HTTP (auto-captured)
   HTTP_REQUEST: 'http.request',
 } as const;
@@ -59,6 +73,9 @@ export const ResourceTypes = {
   TOKEN: 'token',
   POLICY: 'policy',
   APPROVAL: 'approval',
+  CONSENT: 'consent',
+  CAMPAIGN: 'campaign',
+  ATTESTATION: 'attestation',
   HTTP: 'http',
 } as const;
 

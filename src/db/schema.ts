@@ -178,3 +178,115 @@ export const approvalRequests = pgTable(
 
 export type ApprovalRequest = typeof approvalRequests.$inferSelect;
 export type NewApprovalRequest = typeof approvalRequests.$inferInsert;
+
+// --- Phase 4: Consent & Attestation ---
+
+export const consentGrants = pgTable(
+  'consent_grants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agentIdentities.agentId, { onDelete: 'cascade' }),
+    userId: text('user_id').notNull(),
+    permissionSnapshot: jsonb('permission_snapshot').notNull().$type<Record<string, unknown>[]>(),
+    scopes: jsonb('scopes').notNull().$type<string[]>(),
+    status: text('status').notNull().default('active'),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    revokedBy: text('revoked_by'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'consent_status_check',
+      sql`${table.status} IN ('active', 'revoked')`,
+    ),
+    index('consent_agent_user_idx').on(table.agentId, table.userId),
+    index('consent_user_idx').on(table.userId),
+    index('consent_status_idx').on(table.status),
+  ],
+);
+
+export type ConsentGrant = typeof consentGrants.$inferSelect;
+export type NewConsentGrant = typeof consentGrants.$inferInsert;
+
+export const attestationCampaigns = pgTable(
+  'attestation_campaigns',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    description: text('description'),
+    frequency: text('frequency').notNull(),
+    scope: text('scope').notNull(),
+    scopeFilter: jsonb('scope_filter').$type<{ agentIds?: string[]; ownerUserIds?: string[]; minTier?: string }>(),
+    status: text('status').notNull().default('active'),
+    createdBy: text('created_by').notNull(),
+    dueDate: timestamp('due_date', { withTimezone: true }).notNull(),
+    completedAt: timestamp('completed_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'campaign_frequency_check',
+      sql`${table.frequency} IN ('quarterly', 'semi_annual', 'annual', 'ad_hoc')`,
+    ),
+    check(
+      'campaign_scope_check',
+      sql`${table.scope} IN ('all_agents', 'sensitive_only', 'specific_agents')`,
+    ),
+    check(
+      'campaign_status_check',
+      sql`${table.status} IN ('active', 'completed', 'cancelled')`,
+    ),
+    index('campaign_status_due_idx').on(table.status, table.dueDate),
+  ],
+);
+
+export type AttestationCampaign = typeof attestationCampaigns.$inferSelect;
+export type NewAttestationCampaign = typeof attestationCampaigns.$inferInsert;
+
+export const attestationItems = pgTable(
+  'attestation_items',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    campaignId: uuid('campaign_id')
+      .notNull()
+      .references(() => attestationCampaigns.id, { onDelete: 'cascade' }),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agentIdentities.agentId, { onDelete: 'cascade' }),
+    permissionId: uuid('permission_id').notNull(),
+    reviewerUserId: text('reviewer_user_id').notNull(),
+    reviewerRole: text('reviewer_role').notNull(),
+    permissionSnapshot: jsonb('permission_snapshot').notNull().$type<Record<string, unknown>>(),
+    status: text('status').notNull().default('pending'),
+    decision: text('decision'),
+    decisionNote: text('decision_note'),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'item_reviewer_role_check',
+      sql`${table.reviewerRole} IN ('owner', 'manager', 'security_delegate')`,
+    ),
+    check(
+      'item_status_check',
+      sql`${table.status} IN ('pending', 'attested', 'rejected', 'auto_suspended')`,
+    ),
+    check(
+      'item_decision_check',
+      sql`${table.decision} IS NULL OR ${table.decision} IN ('confirm', 'revoke')`,
+    ),
+    index('item_campaign_idx').on(table.campaignId),
+    index('item_agent_idx').on(table.agentId),
+    index('item_reviewer_status_idx').on(table.reviewerUserId, table.status),
+    index('item_campaign_status_idx').on(table.campaignId, table.status),
+  ],
+);
+
+export type AttestationItem = typeof attestationItems.$inferSelect;
+export type NewAttestationItem = typeof attestationItems.$inferInsert;

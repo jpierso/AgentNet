@@ -19,6 +19,12 @@ import { AuditService } from './services/audit.service.js';
 import { PgPolicyEngine } from './services/pg-policy-engine.js';
 import { policiesRoute } from './routes/policies.route.js';
 import { approvalsRoute } from './routes/approvals.route.js';
+import { consentsRoute } from './routes/consents.route.js';
+import { accessReviewsRoute } from './routes/access-reviews.route.js';
+import { attestationCampaignsRoute } from './routes/attestation-campaigns.route.js';
+import { attestationItemsRoute } from './routes/attestation-items.route.js';
+import { driftDetectionRoute } from './routes/drift-detection.route.js';
+import { agentGovernanceRoute } from './routes/agent-governance.route.js';
 
 export interface BuildAppOptions {
   database_url?: string;
@@ -65,6 +71,12 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   await app.register(auditRoute, { prefix: '/audit-events' });
   await app.register(policiesRoute, { prefix: '/policies' });
   await app.register(approvalsRoute, { prefix: '/approvals' });
+  await app.register(consentsRoute, { prefix: '/consents' });
+  await app.register(accessReviewsRoute, { prefix: '/access-reviews' });
+  await app.register(attestationCampaignsRoute, { prefix: '/attestation-campaigns' });
+  await app.register(attestationItemsRoute, { prefix: '/attestation-items' });
+  await app.register(driftDetectionRoute, { prefix: '/drift-detection' });
+  await app.register(agentGovernanceRoute, { prefix: '/agents' });
 
   return app;
 }
