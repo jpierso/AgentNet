@@ -1,6 +1,6 @@
 import { buildApp } from '../src/app.js';
 import type { FastifyInstance } from 'fastify';
-import { agentIdentities, permissionBoundaries, auditEvents, policyRules, approvalRequests, consentGrants, attestationItems, attestationCampaigns } from '../src/db/schema.js';
+import { agentIdentities, permissionBoundaries, auditEvents, policyRules, approvalRequests, consentGrants, attestationItems, attestationCampaigns, tokenRevocations, lifecycleEvents, agentSuspensionRecords } from '../src/db/schema.js';
 
 const TEST_DB_URL = 'postgresql://agentnet_test:agentnet_test@localhost:5433/agentnet_test';
 
@@ -12,6 +12,9 @@ export async function buildTestApp(): Promise<FastifyInstance> {
 
 export async function cleanDatabase(app: FastifyInstance) {
   // Order matters: delete children before parents
+  await app.db.delete(agentSuspensionRecords);
+  await app.db.delete(lifecycleEvents);
+  await app.db.delete(tokenRevocations);
   await app.db.delete(attestationItems);
   await app.db.delete(attestationCampaigns);
   await app.db.delete(consentGrants);

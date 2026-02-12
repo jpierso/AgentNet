@@ -18,6 +18,7 @@ describe('Token Exchange', () => {
 
   beforeEach(async () => {
     await cleanDatabase(app);
+    app.revocationSet.clear();
 
     // Create agent
     const agent = createTestAgent();
@@ -276,5 +277,94 @@ describe('Token Exchange', () => {
 
     expect(response.statusCode).toBe(200);
     expect(response.json().scope).toEqual(['documents:read', 'documents:create']);
+  });
+
+  it('should reject exchange when parent token JTI is revoked', async () => {
+    const parentClaims = jwt.decode(parentToken) as Record<string, unknown>;
+
+    // Revoke the parent token
+    await app.inject({
+      method: 'POST',
+      url: '/tokens/revoke',
+      payload: {
+        jti: parentClaims.jti,
+        agentId: testAgentId,
+        revokedBy: 'admin',
+        reason: 'compromised',
+      },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agents/${testAgentId}/token/exchange`,
+      payload: {
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        subject_token: parentToken,
+        subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+        scope: ['documents:read'],
+        ttlMinutes: 15,
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json().message).toContain('revoked');
+  });
+
+  it('should reject exchange when agent has blanket token revocation', async () => {
+    // Blanket revoke all tokens for the agent
+    await app.inject({
+      method: 'POST',
+      url: '/tokens/revoke',
+      payload: {
+        agentId: testAgentId,
+        revokedBy: 'admin',
+        reason: 'security audit',
+      },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agents/${testAgentId}/token/exchange`,
+      payload: {
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        subject_token: parentToken,
+        subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+        scope: ['documents:read'],
+        ttlMinutes: 15,
+      },
+    });
+
+    expect(response.statusCode).toBe(401);
+    expect(response.json().message).toContain('revoked');
+  });
+
+  it('should succeed exchange with non-revoked token after different agent revoked', async () => {
+    // Create a second agent and revoke its tokens
+    const agent2 = createTestAgent();
+    await app.inject({ method: 'POST', url: '/agents', payload: agent2 });
+    await app.inject({
+      method: 'POST',
+      url: '/tokens/revoke',
+      payload: {
+        agentId: agent2.agentId,
+        revokedBy: 'admin',
+        reason: 'test',
+      },
+    });
+
+    // Original agent's token should still work
+    const response = await app.inject({
+      method: 'POST',
+      url: `/agents/${testAgentId}/token/exchange`,
+      payload: {
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        subject_token: parentToken,
+        subject_token_type: 'urn:ietf:params:oauth:token-type:access_token',
+        scope: ['documents:read'],
+        ttlMinutes: 15,
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
   });
 });

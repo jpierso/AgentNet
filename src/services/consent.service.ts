@@ -130,4 +130,28 @@ export class ConsentService {
       .where(eq(consentGrants.agentId, agentId))
       .orderBy(consentGrants.createdAt);
   }
+
+  /**
+   * Revoke all active consents for a user (used during offboarding).
+   * Returns the number of consents revoked.
+   */
+  async revokeAllForUser(userId: string, revokedBy: string): Promise<number> {
+    const revoked = await this.db
+      .update(consentGrants)
+      .set({
+        status: 'revoked',
+        revokedAt: new Date(),
+        revokedBy,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(consentGrants.userId, userId),
+          eq(consentGrants.status, 'active'),
+        ),
+      )
+      .returning();
+
+    return revoked.length;
+  }
 }

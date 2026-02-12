@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const lifecycleStateEnum = z.enum(['active', 'suspended', 'revoked']);
+export const lifecycleStateEnum = z.enum(['active', 'suspended', 'revoked', 'deprovisioned']);
 
 // --- Request schemas ---
 

@@ -40,7 +40,17 @@ export async function tokenExchangeRoute(app: FastifyInstance) {
       // 1. Verify subject_token
       const parentClaims = await idp.verifyToken(subject_token);
 
-      // 2. Confirm token's agent_id matches URL :agentId
+      // 2. Check if parent token is revoked
+      const isRevoked = app.revocationSet.isRevoked(
+        parentClaims.jti,
+        parentClaims.agent_id,
+        parentClaims.iat,
+      );
+      if (isRevoked) {
+        throw new AppError(401, 'Unauthorized', 'Parent token has been revoked');
+      }
+
+      // 3. Confirm token's agent_id matches URL :agentId
       if (parentClaims.agent_id !== agentId) {
         throw new AppError(
           403,

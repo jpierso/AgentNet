@@ -45,6 +45,18 @@ export const AuditActions = {
   // Drift detection
   DRIFT_DETECTED: 'drift.detected',
 
+  // Lifecycle management
+  LIFECYCLE_EVENT_PROCESSED: 'lifecycle.event.processed',
+  LIFECYCLE_EVENT_FAILED: 'lifecycle.event.failed',
+  AGENT_SUSPENDED_BY_LIFECYCLE: 'agent.suspended.lifecycle',
+  AGENT_REACTIVATED_BY_LIFECYCLE: 'agent.reactivated.lifecycle',
+  AGENT_DEPROVISIONED: 'agent.deprovisioned',
+
+  // Token revocation
+  TOKEN_REVOKED: 'token.revoked',
+  TOKEN_BLANKET_REVOKED: 'token.blanket_revoked',
+  TOKEN_INTROSPECTED: 'token.introspected',
+
   // HTTP (auto-captured)
   HTTP_REQUEST: 'http.request',
 } as const;
@@ -76,6 +88,7 @@ export const ResourceTypes = {
   CONSENT: 'consent',
   CAMPAIGN: 'campaign',
   ATTESTATION: 'attestation',
+  LIFECYCLE_EVENT: 'lifecycle_event',
   HTTP: 'http',
 } as const;
 

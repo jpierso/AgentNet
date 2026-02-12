@@ -17,6 +17,8 @@ import { auditRoute } from './routes/audit.route.js';
 import { PgAuditStore } from './services/pg-audit-store.js';
 import { AuditService } from './services/audit.service.js';
 import { PgPolicyEngine } from './services/pg-policy-engine.js';
+import { RevocationSet } from './services/revocation-set.js';
+import { TokenRevocationService } from './services/token-revocation.service.js';
 import { policiesRoute } from './routes/policies.route.js';
 import { approvalsRoute } from './routes/approvals.route.js';
 import { consentsRoute } from './routes/consents.route.js';
@@ -25,6 +27,8 @@ import { attestationCampaignsRoute } from './routes/attestation-campaigns.route.
 import { attestationItemsRoute } from './routes/attestation-items.route.js';
 import { driftDetectionRoute } from './routes/drift-detection.route.js';
 import { agentGovernanceRoute } from './routes/agent-governance.route.js';
+import { tokenRevocationRoute } from './routes/token-revocation.route.js';
+import { lifecycleEventsRoute } from './routes/lifecycle-events.route.js';
 
 export interface BuildAppOptions {
   database_url?: string;
@@ -58,6 +62,12 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   const policyEngine = new PgPolicyEngine(app.db);
   app.decorate('policyEngine', policyEngine);
 
+  // Revocation set — in-memory + DB-backed
+  const revocationSet = new RevocationSet();
+  app.decorate('revocationSet', revocationSet);
+  const tokenRevocationService = new TokenRevocationService(app.db, revocationSet);
+  await tokenRevocationService.loadRevocations();
+
   // HTTP audit capture hook
   await app.register(auditHookPlugin);
 
@@ -77,6 +87,8 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   await app.register(attestationItemsRoute, { prefix: '/attestation-items' });
   await app.register(driftDetectionRoute, { prefix: '/drift-detection' });
   await app.register(agentGovernanceRoute, { prefix: '/agents' });
+  await app.register(tokenRevocationRoute, { prefix: '/tokens' });
+  await app.register(lifecycleEventsRoute, { prefix: '/lifecycle-events' });
 
   return app;
 }

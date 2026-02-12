@@ -1,4 +1,4 @@
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { agentIdentities, type AgentIdentity } from '../db/schema.js';
 import type { Database } from '../db/connection.js';
 import { AppError } from '../plugins/error-handler.plugin.js';
@@ -121,5 +121,70 @@ export class AgentService {
       data,
       total: countResult[0]?.count ?? 0,
     };
+  }
+
+  /**
+   * Suspend all active agents owned by a user. Returns the affected agents.
+   */
+  async suspendByOwner(ownerUserId: string): Promise<AgentIdentity[]> {
+    const agents = await this.db
+      .update(agentIdentities)
+      .set({
+        lifecycleState: 'suspended',
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(agentIdentities.ownerUserId, ownerUserId),
+          eq(agentIdentities.lifecycleState, 'active'),
+        ),
+      )
+      .returning();
+
+    return agents;
+  }
+
+  /**
+   * Deprovision all non-deprovisioned agents owned by a user. Returns the affected agents.
+   */
+  async deprovisionByOwner(ownerUserId: string): Promise<AgentIdentity[]> {
+    const agents = await this.db
+      .update(agentIdentities)
+      .set({
+        lifecycleState: 'deprovisioned',
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(agentIdentities.ownerUserId, ownerUserId),
+          sql`${agentIdentities.lifecycleState} != 'deprovisioned'`,
+        ),
+      )
+      .returning();
+
+    return agents;
+  }
+
+  /**
+   * Reactivate agents by their IDs, restoring them to a given previous state.
+   */
+  async reactivateAgents(agentIds: string[], previousState: string): Promise<AgentIdentity[]> {
+    if (agentIds.length === 0) return [];
+
+    const agents = await this.db
+      .update(agentIdentities)
+      .set({
+        lifecycleState: previousState,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          inArray(agentIdentities.agentId, agentIds),
+          eq(agentIdentities.lifecycleState, 'suspended'),
+        ),
+      )
+      .returning();
+
+    return agents;
   }
 }

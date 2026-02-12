@@ -13,6 +13,7 @@ const envSchema = z.object({
   JWT_ISSUER: z.string().default('agentnet'),
   JWT_AUDIENCE: z.string().default('agentnet-api'),
   JWT_TTL_MINUTES: z.coerce.number().min(1).max(60).default(15),
+  WEBHOOK_SECRET: z.string().min(16),
 });
 
 export type Env = z.infer<typeof envSchema>;

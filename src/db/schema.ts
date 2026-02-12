@@ -19,7 +19,7 @@ export const agentIdentities = pgTable(
   (table) => [
     check(
       'lifecycle_state_check',
-      sql`${table.lifecycleState} IN ('active', 'suspended', 'revoked')`,
+      sql`${table.lifecycleState} IN ('active', 'suspended', 'revoked', 'deprovisioned')`,
     ),
   ],
 );
@@ -290,3 +290,84 @@ export const attestationItems = pgTable(
 
 export type AttestationItem = typeof attestationItems.$inferSelect;
 export type NewAttestationItem = typeof attestationItems.$inferInsert;
+
+// --- Phase 5: Lifecycle Management ---
+
+export const tokenRevocations = pgTable(
+  'token_revocations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    jti: text('jti').notNull().unique(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agentIdentities.agentId, { onDelete: 'cascade' }),
+    parentJti: text('parent_jti'),
+    revokedBy: text('revoked_by').notNull(),
+    reason: text('reason').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('token_revocation_jti_idx').on(table.jti),
+    index('token_revocation_agent_idx').on(table.agentId),
+    index('token_revocation_parent_jti_idx').on(table.parentJti),
+    index('token_revocation_expires_idx').on(table.expiresAt),
+  ],
+);
+
+export type TokenRevocation = typeof tokenRevocations.$inferSelect;
+export type NewTokenRevocation = typeof tokenRevocations.$inferInsert;
+
+export const lifecycleEvents = pgTable(
+  'lifecycle_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventType: text('event_type').notNull(),
+    userId: text('user_id').notNull(),
+    payload: jsonb('payload').$type<Record<string, unknown>>(),
+    status: text('status').notNull().default('processed'),
+    agentsAffected: integer('agents_affected').notNull().default(0),
+    errorMessage: text('error_message'),
+    processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'lifecycle_event_type_check',
+      sql`${table.eventType} IN ('user.suspended', 'user.reactivated', 'user.departed', 'user.role_changed')`,
+    ),
+    check(
+      'lifecycle_event_status_check',
+      sql`${table.status} IN ('processed', 'failed')`,
+    ),
+    index('lifecycle_event_user_idx').on(table.userId),
+    index('lifecycle_event_type_idx').on(table.eventType),
+    index('lifecycle_event_created_idx').on(table.createdAt),
+  ],
+);
+
+export type LifecycleEvent = typeof lifecycleEvents.$inferSelect;
+export type NewLifecycleEvent = typeof lifecycleEvents.$inferInsert;
+
+export const agentSuspensionRecords = pgTable(
+  'agent_suspension_records',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agentIdentities.agentId, { onDelete: 'cascade' }),
+    previousState: text('previous_state').notNull(),
+    suspendedByEvent: uuid('suspended_by_event')
+      .notNull()
+      .references(() => lifecycleEvents.id),
+    reactivatedAt: timestamp('reactivated_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index('suspension_agent_idx').on(table.agentId),
+    index('suspension_event_idx').on(table.suspendedByEvent),
+  ],
+);
+
+export type AgentSuspensionRecord = typeof agentSuspensionRecords.$inferSelect;
+export type NewAgentSuspensionRecord = typeof agentSuspensionRecords.$inferInsert;

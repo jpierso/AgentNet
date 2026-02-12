@@ -6,6 +6,7 @@ export function setup() {
   process.env.JWT_AUDIENCE = 'agentnet-api-test';
   process.env.JWT_TTL_MINUTES = '15';
   process.env.LOG_LEVEL = 'error';
+  process.env.WEBHOOK_SECRET = 'test-webhook-secret-min-16-chars';
   process.env.PORT = '0';
   process.env.HOST = '0.0.0.0';
 }
