@@ -1,6 +1,43 @@
 ![Project Logo](Images/AgentNet.png)
 
-## Executive Summary
+# AgentNet
+
+Enterprise Identity and Access Management (IAM) platform for AI agents. Provides agent identity registration, scoped delegation via OAuth2 token exchange, granular permission boundaries, policy-based access control, audit trails, consent/attestation workflows, drift detection, and lifecycle management.
+
+## Implementation Status
+
+| Phase | Name | Status |
+|-------|------|--------|
+| 0 | Foundation — Agent Identity & Registry | Complete |
+| 1 | Permission Boundaries & Scoped Delegation | Complete |
+| 2 | Audit & Observability | Complete |
+| 3 | Policy Engine & Approval Workflows | Complete |
+| 4 | Consent & Attestation Framework | Complete |
+| 5 | Lifecycle Management & Governance | Complete |
+
+267 tests passing | 46 API endpoints | 16 route files | 11 database tables
+
+## Quick Start
+
+```bash
+pnpm install                     # Install dependencies
+docker compose up -d             # Start PostgreSQL (dev:5432 + test:5433)
+cp .env.example .env             # Set DATABASE_URL, JWT_SECRET, WEBHOOK_SECRET
+pnpm db:push && pnpm dev         # Push schema + start server on :3000
+```
+
+## Documentation
+
+- **[API Reference](docs/API.md)** — All 46 endpoints with request/response schemas
+- **[Developer Guide](docs/DEVELOPER.md)** — Architecture, testing, adding endpoints
+
+## Tech Stack
+
+TypeScript | Fastify 5 | PostgreSQL 15+ | Drizzle ORM | Zod v4 | JWT | Vitest
+
+---
+
+## Design Philosophy
 
 AI agents acting on behalf of users fundamentally shift the Identity and Access Management (IAM) model from "human authenticates and acts" to "human delegates and agent acts autonomously." This document presents a comprehensive plan to maintain robust access controls for AI agents, including mechanisms for reviewing and attesting to agent access, and investigating agent actions performed on behalf of users.
 
