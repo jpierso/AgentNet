@@ -1,4 +1,4 @@
-![Project Logo](images/AgentNet.png)
+![Project Logo](Images/AgentNet.png)
 
 ## Executive Summary
 
