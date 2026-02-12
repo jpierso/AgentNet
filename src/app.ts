@@ -16,6 +16,9 @@ import { tokenExchangeRoute } from './routes/token-exchange.route.js';
 import { auditRoute } from './routes/audit.route.js';
 import { PgAuditStore } from './services/pg-audit-store.js';
 import { AuditService } from './services/audit.service.js';
+import { PgPolicyEngine } from './services/pg-policy-engine.js';
+import { policiesRoute } from './routes/policies.route.js';
+import { approvalsRoute } from './routes/approvals.route.js';
 
 export interface BuildAppOptions {
   database_url?: string;
@@ -45,6 +48,10 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   const auditService = new AuditService(auditStore);
   app.decorate('auditService', auditService);
 
+  // Policy engine
+  const policyEngine = new PgPolicyEngine(app.db);
+  app.decorate('policyEngine', policyEngine);
+
   // HTTP audit capture hook
   await app.register(auditHookPlugin);
 
@@ -56,6 +63,8 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   await app.register(tokenExchangeRoute, { prefix: '/agents' });
   await app.register(permissionsRoute, { prefix: '/permissions' });
   await app.register(auditRoute, { prefix: '/audit-events' });
+  await app.register(policiesRoute, { prefix: '/policies' });
+  await app.register(approvalsRoute, { prefix: '/approvals' });
 
   return app;
 }

@@ -1,6 +1,6 @@
 import { buildApp } from '../src/app.js';
 import type { FastifyInstance } from 'fastify';
-import { agentIdentities, permissionBoundaries, auditEvents } from '../src/db/schema.js';
+import { agentIdentities, permissionBoundaries, auditEvents, policyRules, approvalRequests } from '../src/db/schema.js';
 
 const TEST_DB_URL = 'postgresql://agentnet_test:agentnet_test@localhost:5433/agentnet_test';
 
@@ -13,6 +13,8 @@ export async function buildTestApp(): Promise<FastifyInstance> {
 export async function cleanDatabase(app: FastifyInstance) {
   // Order matters: delete children before parents
   await app.db.delete(auditEvents);
+  await app.db.delete(approvalRequests);
+  await app.db.delete(policyRules);
   await app.db.delete(permissionBoundaries);
   await app.db.delete(agentIdentities);
 }

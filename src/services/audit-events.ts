@@ -19,6 +19,18 @@ export const AuditActions = {
   PERMISSION_RETRIEVED: 'permission.retrieved',
   PERMISSION_LISTED: 'permission.listed',
 
+  // Policy operations
+  POLICY_CREATED: 'policy.created',
+  POLICY_UPDATED: 'policy.updated',
+  POLICY_DELETED: 'policy.deleted',
+  POLICY_EVALUATED: 'policy.evaluated',
+  TOKEN_EXCHANGE_POLICY_DENIED: 'token.exchange.policy_denied',
+  TOKEN_EXCHANGE_APPROVAL_REQUIRED: 'token.exchange.approval_required',
+
+  // Approval operations
+  APPROVAL_CREATED: 'approval.created',
+  APPROVAL_REVIEWED: 'approval.reviewed',
+
   // HTTP (auto-captured)
   HTTP_REQUEST: 'http.request',
 } as const;
@@ -45,6 +57,8 @@ export const ResourceTypes = {
   AGENT: 'agent',
   PERMISSION: 'permission',
   TOKEN: 'token',
+  POLICY: 'policy',
+  APPROVAL: 'approval',
   HTTP: 'http',
 } as const;
 

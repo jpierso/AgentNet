@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, check, jsonb, integer, uniqueIndex, index } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, check, jsonb, integer, boolean, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
 export const agentIdentities = pgTable(
@@ -107,3 +107,74 @@ export const auditEvents = pgTable(
 
 export type AuditEvent = typeof auditEvents.$inferSelect;
 export type NewAuditEvent = typeof auditEvents.$inferInsert;
+
+// --- Phase 3: Policy Rules ---
+
+export const policyRules = pgTable(
+  'policy_rules',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().unique(),
+    description: text('description'),
+    enabled: boolean('enabled').notNull().default(true),
+    priority: integer('priority').notNull().default(0),
+    resourcePattern: text('resource_pattern').notNull(),
+    actionPattern: text('action_pattern').notNull(),
+    agentTypePattern: text('agent_type_pattern'),
+    tier: text('tier'),
+    conditions: jsonb('conditions').$type<Record<string, unknown>>(),
+    effect: text('effect').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'tier_check',
+      sql`${table.tier} IS NULL OR ${table.tier} IN ('tier_0', 'tier_1', 'tier_2', 'tier_3')`,
+    ),
+    check(
+      'effect_check',
+      sql`${table.effect} IN ('allow', 'deny', 'require_approval')`,
+    ),
+    index('policy_enabled_priority_idx').on(table.enabled),
+  ],
+);
+
+export type PolicyRule = typeof policyRules.$inferSelect;
+export type NewPolicyRule = typeof policyRules.$inferInsert;
+
+// --- Phase 3: Approval Requests ---
+
+export const approvalRequests = pgTable(
+  'approval_requests',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    agentId: text('agent_id')
+      .notNull()
+      .references(() => agentIdentities.agentId, { onDelete: 'cascade' }),
+    requestedBy: text('requested_by').notNull(),
+    requestedScopes: jsonb('requested_scopes').notNull().$type<string[]>(),
+    grantedPermissions: jsonb('granted_permissions')
+      .notNull()
+      .$type<Array<{ resource: string; actions: string[]; tier: string }>>(),
+    parentTokenJti: text('parent_token_jti').notNull(),
+    ttlMinutes: integer('ttl_minutes').notNull(),
+    status: text('status').notNull().default('pending'),
+    reviewedBy: text('reviewed_by'),
+    reviewedAt: timestamp('reviewed_at', { withTimezone: true }),
+    reviewNote: text('review_note'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'approval_status_check',
+      sql`${table.status} IN ('pending', 'approved', 'denied', 'expired')`,
+    ),
+    index('approval_agent_status_idx').on(table.agentId, table.status),
+    index('approval_status_expires_idx').on(table.status, table.expiresAt),
+  ],
+);
+
+export type ApprovalRequest = typeof approvalRequests.$inferSelect;
+export type NewApprovalRequest = typeof approvalRequests.$inferInsert;
