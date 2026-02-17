@@ -1,8 +1,13 @@
 import Fastify, { type FastifyInstance } from 'fastify';
+import fastifyStatic from '@fastify/static';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   serializerCompiler,
   validatorCompiler,
 } from 'fastify-type-provider-zod';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { env } from './config/env.js';
 import { dbPlugin } from './plugins/db.plugin.js';
 import { errorHandlerPlugin } from './plugins/error-handler.plugin.js';
@@ -89,6 +94,12 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   await app.register(agentGovernanceRoute, { prefix: '/agents' });
   await app.register(tokenRevocationRoute, { prefix: '/tokens' });
   await app.register(lifecycleEventsRoute, { prefix: '/lifecycle-events' });
+
+  // Static UI (after API routes so /agents etc. take precedence)
+  await app.register(fastifyStatic, {
+    root: path.join(__dirname, '..', 'public'),
+    prefix: '/',
+  });
 
   return app;
 }

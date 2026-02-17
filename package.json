@@ -1,7 +1,7 @@
 {
   "name": "agentnet",
   "version": "0.1.0",
-  "description": "AI Agent Identity & Access Management — Registry Service",
+  "description": "AI Agent Identity & Access Management \u2014 Registry Service",
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -19,6 +19,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@fastify/static": "^9.0.0",
     "dotenv": "^17.2.4",
     "drizzle-orm": "^0.45.1",
     "fastify": "^5.7.4",

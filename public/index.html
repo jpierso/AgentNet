@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgentNet — Agent Registration API Tester</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --border: #2d3a4d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #58a6ff;
+      --success: #3fb950;
+      --error: #f85149;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 2rem;
+      line-height: 1.5;
+    }
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin: 0 0 1.5rem;
+      color: var(--accent);
+    }
+    .container {
+      max-width: 720px;
+    }
+    .field {
+      margin-bottom: 1rem;
+    }
+    label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    input, select, button {
+      font-family: inherit;
+      font-size: 0.875rem;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--surface);
+      color: var(--text);
+      width: 100%;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    input::placeholder {
+      color: var(--muted);
+    }
+    select {
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2rem;
+    }
+    button {
+      width: auto;
+      cursor: pointer;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      font-weight: 600;
+      padding: 0.6rem 1.25rem;
+      margin-top: 0.5rem;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .row .field { flex: 1; min-width: 140px; }
+    .response {
+      margin-top: 1.5rem;
+      padding: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .response.empty { color: var(--muted); }
+    .response.success { border-color: var(--success); }
+    .response.error { border-color: var(--error); }
+    .status { font-weight: 600; margin-bottom: 0.5rem; }
+    .status.ok { color: var(--success); }
+    .status.err { color: var(--error); }
+    .copy-btn {
+      font-size: 0.7rem;
+      padding: 0.25rem 0.5rem;
+      margin-left: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AgentNet — Agent Registration API Tester</h1>
+
+    <div class="field">
+      <label for="baseUrl">Base URL</label>
+      <input type="text" id="baseUrl" value="http://localhost:3000" placeholder="http://localhost:3000">
+    </div>
+
+    <div class="field">
+      <label for="apiSelect">API</label>
+      <select id="apiSelect">
+        <option value="create">POST /agents — Create agent</option>
+        <option value="get">GET /agents/:agentId — Get agent</option>
+        <option value="update">PATCH /agents/:agentId — Update agent</option>
+        <option value="delete">DELETE /agents/:agentId — Revoke agent</option>
+        <option value="list">GET /agents — List agents</option>
+        <option value="token">POST /agents/:agentId/token — Issue token</option>
+      </select>
+    </div>
+
+    <div id="formContainer"></div>
+
+    <button type="button" id="submitBtn">Submit</button>
+
+    <div id="response" class="response empty">Response will appear here.</div>
+  </div>
+
+  <script>
+    const TEST_UUID = '550e8400-e29b-41d4-a716-446655440000';
+    const TEST_UUID_MGR = '550e8400-e29b-41d4-a716-446655440001';
+
+    const apis = [
+      {
+        id: 'create',
+        method: 'POST',
+        path: '/agents',
+        body: [
+          { key: 'agentId', label: 'Agent ID', required: true, placeholder: 'my-agent-001' },
+          { key: 'ownerUserId', label: 'Owner User ID (UUID)', required: true, placeholder: TEST_UUID },
+          { key: 'managerUserId', label: 'Manager User ID (UUID)', required: true, placeholder: TEST_UUID_MGR },
+          { key: 'agentType', label: 'Agent Type', required: true, placeholder: 'code-assistant' },
+          { key: 'modelVersion', label: 'Model Version', required: false, placeholder: 'gpt-4' },
+          { key: 'purpose', label: 'Purpose', required: false, placeholder: 'Test agent' },
+          { key: 'oktaClientId', label: 'Okta Client ID', required: false, placeholder: '' },
+        ],
+      },
+      {
+        id: 'get',
+        method: 'GET',
+        path: '/agents/:agentId',
+        pathParams: [
+          { key: 'agentId', label: 'Agent ID', placeholder: 'my-agent-001' },
+        ],
+      },
+      {
+        id: 'update',
+        method: 'PATCH',
+        path: '/agents/:agentId',
+        pathParams: [
+          { key: 'agentId', label: 'Agent ID', placeholder: 'my-agent-001' },
+        ],
+        body: [
+          { key: 'managerUserId', label: 'Manager User ID (UUID)', required: false, placeholder: TEST_UUID_MGR },
+          { key: 'agentType', label: 'Agent Type', required: false, placeholder: 'code-assistant' },
+          { key: 'modelVersion', label: 'Model Version', required: false, placeholder: 'gpt-4' },
+          { key: 'purpose', label: 'Purpose', required: false, placeholder: '' },
+          { key: 'lifecycleState', label: 'Lifecycle State', required: false, type: 'select', options: ['active', 'suspended', 'revoked', 'deprovisioned'] },
+          { key: 'oktaClientId', label: 'Okta Client ID', required: false, placeholder: '' },
+        ],
+      },
+      {
+        id: 'delete',
+        method: 'DELETE',
+        path: '/agents/:agentId',
+        pathParams: [
+          { key: 'agentId', label: 'Agent ID', placeholder: 'my-agent-001' },
+        ],
+      },
+      {
+        id: 'list',
+        method: 'GET',
+        path: '/agents',
+        query: [
+          { key: 'ownerUserId', label: 'Owner User ID (UUID)', placeholder: TEST_UUID },
+          { key: 'managerUserId', label: 'Manager User ID (UUID)', placeholder: TEST_UUID_MGR },
+          { key: 'lifecycleState', label: 'Lifecycle State', type: 'select', options: ['active', 'suspended', 'revoked', 'deprovisioned'] },
+          { key: 'limit', label: 'Limit', type: 'number', placeholder: '20' },
+          { key: 'offset', label: 'Offset', type: 'number', placeholder: '0' },
+        ],
+      },
+      {
+        id: 'token',
+        method: 'POST',
+        path: '/agents/:agentId/token',
+        pathParams: [
+          { key: 'agentId', label: 'Agent ID', placeholder: 'my-agent-001' },
+        ],
+        body: [
+          { key: 'ttlMinutes', label: 'TTL (minutes)', type: 'number', required: false, placeholder: '15' },
+        ],
+      },
+    ];
+
+    const formContainer = document.getElementById('formContainer');
+    const apiSelect = document.getElementById('apiSelect');
+    const submitBtn = document.getElementById('submitBtn');
+    const responseEl = document.getElementById('response');
+
+    function renderForm() {
+      const api = apis.find(a => a.id === apiSelect.value);
+      if (!api) return;
+
+      let html = '';
+
+      if (api.pathParams) {
+        api.pathParams.forEach(p => {
+          html += `<div class="field"><label for="${p.key}">${p.label}${p.required ? ' *' : ''}</label>
+            <input type="text" id="${p.key}" data-param="${p.key}" placeholder="${p.placeholder || ''}"></div>`;
+        });
+      }
+
+      if (api.query) {
+        api.query.forEach(p => {
+          if (p.type === 'select') {
+            html += `<div class="field"><label for="${p.key}">${p.label}</label>
+              <select id="${p.key}" data-query="${p.key}">
+                <option value="">—</option>${(p.options || []).map(o => `<option value="${o}">${o}</option>`).join('')}
+              </select></div>`;
+          } else {
+            html += `<div class="field"><label for="${p.key}">${p.label}</label>
+              <input type="${p.type || 'text'}" id="${p.key}" data-query="${p.key}" placeholder="${p.placeholder || ''}"></div>`;
+          }
+        });
+      }
+
+      if (api.body) {
+        api.body.forEach(p => {
+          if (p.type === 'select') {
+            html += `<div class="field"><label for="${p.key}">${p.label}${p.required ? ' *' : ''}</label>
+              <select id="${p.key}" data-body="${p.key}">
+                <option value="">—</option>${(p.options || []).map(o => `<option value="${o}">${o}</option>`).join('')}
+              </select></div>`;
+          } else {
+            html += `<div class="field"><label for="${p.key}">${p.label}${p.required ? ' *' : ''}</label>
+              <input type="${p.type || 'text'}" id="${p.key}" data-body="${p.key}" placeholder="${p.placeholder || ''}"></div>`;
+          }
+        });
+      }
+
+      formContainer.innerHTML = html;
+    }
+
+    function getValues(api) {
+      const pathParams = {};
+      const query = {};
+      const body = {};
+
+      if (api.pathParams) {
+        api.pathParams.forEach(p => {
+          const el = document.getElementById(p.key);
+          if (el) pathParams[p.key] = el.value.trim();
+        });
+      }
+
+      if (api.query) {
+        api.query.forEach(p => {
+          const el = document.getElementById(p.key);
+          if (el && el.value) query[p.key] = p.type === 'number' ? parseInt(el.value, 10) : el.value;
+        });
+      }
+
+      if (api.body) {
+        api.body.forEach(p => {
+          const el = document.getElementById(p.key);
+          if (el && el.value) body[p.key] = p.type === 'number' ? parseInt(el.value, 10) : el.value;
+        });
+      }
+
+      return { pathParams, query, body };
+    }
+
+    function buildUrl(api, pathParams, query) {
+      let path = api.path;
+      Object.entries(pathParams).forEach(([k, v]) => {
+        path = path.replace(':' + k, encodeURIComponent(v));
+      });
+      const base = document.getElementById('baseUrl').value.replace(/\/$/, '');
+      let url = base + path;
+      const qs = new URLSearchParams();
+      Object.entries(query).forEach(([k, v]) => {
+        if (v !== '' && v !== undefined) qs.set(k, v);
+      });
+      const qstr = qs.toString();
+      if (qstr) url += '?' + qstr;
+      return url;
+    }
+
+    async function submit() {
+      const api = apis.find(a => a.id === apiSelect.value);
+      if (!api) return;
+
+      const { pathParams, query, body } = getValues(api);
+
+      if (api.pathParams?.some(p => !pathParams[p.key])) {
+        showResponse(400, { error: 'Validation Error', message: 'Missing required path parameter' }, true);
+        return;
+      }
+      if (api.body?.filter(p => p.required).some(p => !body[p.key])) {
+        showResponse(400, { error: 'Validation Error', message: 'Missing required body field' }, true);
+        return;
+      }
+
+      const url = buildUrl(api, pathParams, query);
+
+      submitBtn.disabled = true;
+      responseEl.textContent = 'Loading...';
+      responseEl.className = 'response';
+
+      try {
+        const opts = { method: api.method, headers: {} };
+        if (['POST', 'PATCH'].includes(api.method) && Object.keys(body).length > 0) {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(body);
+        }
+
+        const res = await fetch(url, opts);
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = await res.text();
+        }
+
+        showResponse(res.status, data, res.status >= 400);
+        if (api.id === 'token' && data?.accessToken) {
+          addCopyButton(data.accessToken);
+        }
+      } catch (err) {
+        showResponse(0, { error: 'Network Error', message: err.message }, true);
+      } finally {
+        submitBtn.disabled = false;
+      }
+    }
+
+    function showResponse(status, data, isError) {
+      const statusStr = status ? `HTTP ${status}` : 'Error';
+      responseEl.innerHTML = `<span class="status ${isError ? 'err' : 'ok'}">${statusStr}</span>\n${JSON.stringify(data, null, 2)}`;
+      responseEl.className = 'response ' + (isError ? 'error' : 'success');
+    }
+
+    function addCopyButton(token) {
+      const btn = document.createElement('button');
+      btn.className = 'copy-btn';
+      btn.textContent = 'Copy token';
+      btn.onclick = () => {
+        navigator.clipboard.writeText(token);
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy token', 1500);
+      };
+      responseEl.insertBefore(btn, responseEl.firstChild);
+    }
+
+    apiSelect.addEventListener('change', renderForm);
+    submitBtn.addEventListener('click', submit);
+    renderForm();
+  </script>
+</body>
+</html>
