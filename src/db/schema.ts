@@ -108,6 +108,56 @@ export const auditEvents = pgTable(
 export type AuditEvent = typeof auditEvents.$inferSelect;
 export type NewAuditEvent = typeof auditEvents.$inferInsert;
 
+// --- Blockchain audit index (local index for fast reads when using blockchain backend) ---
+
+export const auditIndex = pgTable(
+  'audit_index',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    blockchainTxId: text('blockchain_tx_id').notNull().unique(),
+    traceId: text('trace_id').notNull(),
+    spanId: text('span_id'),
+    parentSpanId: text('parent_span_id'),
+    timestamp: timestamp('timestamp', { withTimezone: true }).notNull(),
+    agentId: text('agent_id'),
+    actorType: text('actor_type').notNull(),
+    actorId: text('actor_id').notNull(),
+    action: text('action').notNull(),
+    resource: text('resource').notNull(),
+    resourceType: text('resource_type').notNull(),
+    outcome: text('outcome').notNull(),
+    outcomeReason: text('outcome_reason'),
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    requestMethod: text('request_method'),
+    requestPath: text('request_path'),
+    requestId: text('request_id'),
+    statusCode: integer('status_code'),
+    durationMs: integer('duration_ms'),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    check(
+      'audit_index_actor_type_check',
+      sql`${table.actorType} IN ('agent', 'user', 'system')`,
+    ),
+    check(
+      'audit_index_outcome_check',
+      sql`${table.outcome} IN ('success', 'failure', 'denied')`,
+    ),
+    index('audit_index_trace_id_idx').on(table.traceId),
+    index('audit_index_agent_id_idx').on(table.agentId),
+    index('audit_index_action_idx').on(table.action),
+    index('audit_index_timestamp_idx').on(table.timestamp),
+    index('audit_index_agent_timestamp_idx').on(table.agentId, table.timestamp),
+    index('audit_index_blockchain_tx_id_idx').on(table.blockchainTxId),
+  ],
+);
+
+export type AuditIndexRow = typeof auditIndex.$inferSelect;
+export type NewAuditIndexRow = typeof auditIndex.$inferInsert;
+
 // --- Phase 3: Policy Rules ---
 
 export const policyRules = pgTable(
