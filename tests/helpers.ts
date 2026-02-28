@@ -1,6 +1,6 @@
 import { buildApp } from '../src/app.js';
 import type { FastifyInstance } from 'fastify';
-import { agentIdentities, permissionBoundaries, auditEvents, policyRules, approvalRequests, consentGrants, attestationItems, attestationCampaigns, tokenRevocations, lifecycleEvents, agentSuspensionRecords } from '../src/db/schema.js';
+import { agentIdentities, permissionBoundaries, auditEvents, auditIndex, policyRules, approvalRequests, consentGrants, attestationItems, attestationCampaigns, tokenRevocations, lifecycleEvents, agentSuspensionRecords } from '../src/db/schema.js';
 
 const TEST_DB_URL = 'postgresql://agentnet_test:agentnet_test@localhost:5433/agentnet_test';
 
@@ -19,6 +19,7 @@ export async function cleanDatabase(app: FastifyInstance) {
   await app.db.delete(attestationCampaigns);
   await app.db.delete(consentGrants);
   await app.db.delete(auditEvents);
+  await app.db.delete(auditIndex);
   await app.db.delete(approvalRequests);
   await app.db.delete(policyRules);
   await app.db.delete(permissionBoundaries);

@@ -136,6 +136,7 @@ pnpm typecheck                      # Type check without emitting
 | `HOST` | No | `0.0.0.0` | Server bind address |
 | `NODE_ENV` | No | `development` | Environment mode |
 | `LOG_LEVEL` | No | `info` | Pino log level |
+| `AUDIT_BACKEND` | No | `postgres` | `postgres` or `blockchain` — see [docs/BLOCKCHAIN_AUDIT_ARCHITECTURE.md](docs/BLOCKCHAIN_AUDIT_ARCHITECTURE.md) |
 
 ## Conventions
 
@@ -155,3 +156,4 @@ pnpm typecheck                      # Type check without emitting
 
 - [`docs/API.md`](docs/API.md) — Full API reference (46 endpoints)
 - [`docs/DEVELOPER.md`](docs/DEVELOPER.md) — Developer guide, architecture, testing patterns
+- [`docs/BLOCKCHAIN_AUDIT_ARCHITECTURE.md`](docs/BLOCKCHAIN_AUDIT_ARCHITECTURE.md) — Blockchain-anchored audit ledger setup

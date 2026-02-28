@@ -19,8 +19,12 @@ import { tokenRoute } from './routes/token.route.js';
 import { permissionsRoute, agentPermissionsRoute } from './routes/permissions.route.js';
 import { tokenExchangeRoute } from './routes/token-exchange.route.js';
 import { auditRoute } from './routes/audit.route.js';
+import type { Database } from './db/connection.js';
 import { PgAuditStore } from './services/pg-audit-store.js';
+import { BlockchainAuditStore } from './services/blockchain-audit-store.js';
+import { FabricBlockchainClient } from './services/blockchain-client.js';
 import { AuditService } from './services/audit.service.js';
+import type { IAuditStore } from './services/audit-store.js';
 import { PgPolicyEngine } from './services/pg-policy-engine.js';
 import { RevocationSet } from './services/revocation-set.js';
 import { TokenRevocationService } from './services/token-revocation.service.js';
@@ -37,6 +41,20 @@ import { lifecycleEventsRoute } from './routes/lifecycle-events.route.js';
 
 export interface BuildAppOptions {
   database_url?: string;
+}
+
+async function createBlockchainAuditStore(db: Database): Promise<IAuditStore> {
+  const blockchain = new FabricBlockchainClient({
+    peerEndpoint: env.BLOCKCHAIN_PEER_ENDPOINT!,
+    peerHostAlias: env.BLOCKCHAIN_PEER_HOST_ALIAS!,
+    tlsCertPath: env.BLOCKCHAIN_TLS_CERT_PATH!,
+    certPath: env.BLOCKCHAIN_CERT_PATH!,
+    keyPath: env.BLOCKCHAIN_KEY_PATH!,
+    mspId: env.BLOCKCHAIN_MSP_ID!,
+    channelName: env.BLOCKCHAIN_CHANNEL!,
+    chaincodeName: env.BLOCKCHAIN_CHAINCODE!,
+  });
+  return new BlockchainAuditStore(db, blockchain);
 }
 
 export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInstance> {
@@ -59,7 +77,10 @@ export async function buildApp(opts: BuildAppOptions = {}): Promise<FastifyInsta
   await app.register(dbPlugin, { databaseUrl: opts.database_url });
 
   // Audit infrastructure — depends on db being available
-  const auditStore = new PgAuditStore(app.db);
+  const auditStore =
+    env.AUDIT_BACKEND === 'blockchain'
+      ? await createBlockchainAuditStore(app.db)
+      : new PgAuditStore(app.db);
   const auditService = new AuditService(auditStore);
   app.decorate('auditService', auditService);
 
